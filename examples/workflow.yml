@@ -1,0 +1,47 @@
+# Copy to .github/workflows/test-cases.yml in your repository.
+name: Test cases
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Issue number to (re)generate test cases for"
+        required: true
+
+jobs:
+  test-cases:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read     # write if commit: true
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Load issue for manual runs
+        if: github.event_name == 'workflow_dispatch'
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ inputs.issue }}
+        run: |
+          gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json title,body > issue.json
+          {
+            echo "title=$(jq -r .title issue.json)"
+            echo "body<<GTC_EOF"; jq -r .body issue.json; echo "GTC_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate test cases
+        id: cases
+        uses: koukibadr/gen-test-cases@v0
+        with:
+          provider: anthropic            # or openai, xai, gemini, openrouter, custom...
+          model: claude-sonnet-4-6
+          api-key: ${{ secrets.AI_API_KEY }}
+          issue-number: ${{ inputs.issue || github.event.issue.number }}
+          issue-title: ${{ steps.issue.outputs.title || github.event.issue.title }}
+          issue-body: ${{ steps.issue.outputs.body || github.event.issue.body }}
+          commit: "false"
+
+      - run: echo "${{ steps.cases.outputs.total }} cases, ${{ steps.cases.outputs.blocking }} blocking → ${{ steps.cases.outputs.comment-url }}"

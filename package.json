@@ -1,0 +1,12 @@
+{
+  "name": "gen-test-cases",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitHub Action: generate UAT test cases from a GitHub issue with any AI model.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "js-yaml": "4.1.0"
+  }
+}
